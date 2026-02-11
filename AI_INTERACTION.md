@@ -1,12 +1,12 @@
-# AI Interaction & Space Age Support
+# AI Interaction Support
 
-**Fork Purpose:** Enable AI-assisted blueprint design and update for Factorio Space Age DLC
+**Goal:** Enable AI-assisted blueprint design via programmatic control
 
-## AI Interaction Goals
+## Overview
 
-This fork aims to make the Factorio Blueprint Editor accessible to AI agents for automated blueprint creation. The goal is to enable AI assistants to design complex production lines, including belt weaving, direct insertion chains, and circuit logic, without requiring manual drag-and-drop interaction.
+This document outlines features to make the Factorio Blueprint Editor accessible to AI agents for automated blueprint creation. The goal is to enable AI assistants to design complex production lines, including belt weaving, direct insertion chains, and circuit logic, without requiring manual drag-and-drop interaction.
 
-### Use Cases
+## Use Cases
 
 - AI-assisted blueprint design via natural language
 - Automated production ratio calculations and layout
@@ -18,9 +18,12 @@ This fork aims to make the Factorio Blueprint Editor accessible to AI agents for
 
 ### 1. JavaScript API (Primary Approach)
 
+**Priority: Critical**
+
 Expose programmatic methods to the browser console for AI interaction via browser automation tools.
 
-**Core Methods:**
+#### Core Methods
+
 ```javascript
 // Entity Placement
 editor.placeEntity(entityName, options)
@@ -53,44 +56,101 @@ editor.centerView()
 editor.zoomTo(level)
 ```
 
-**Benefits:**
+#### Benefits
 - Most flexible approach
 - Minimal UI changes required
 - Can build entire blueprints programmatically
 - Easy to test and debug
 
-**Implementation Plan:**
-1. Create `src/core/editorAPI.ts` to expose methods
-2. Attach API to window object: `window.factorioEditor = editorAPI`
-3. Document all methods and parameters
-4. Add TypeScript definitions for type safety
+#### Implementation Plan
+
+**Milestone 1: API Foundation**
+- [ ] Create `src/core/editorAPI.ts` to expose methods
+- [ ] Attach API to window object: `window.factorioEditor = editorAPI`
+- [ ] Implement core entity placement methods
+- [ ] Add connection/wiring methods
+- [ ] Add export/import methods
+- [ ] Write API documentation with examples
+- [ ] Add TypeScript definitions for type safety
+
+**Example Usage:**
+```javascript
+// Place a basic green circuit production line
+const assembler1 = editor.placeEntity('assembler-2', {
+  x: 0,
+  y: 0,
+  direction: 'north',
+  recipe: 'electronic-circuit'
+});
+
+const assembler2 = editor.placeEntity('assembler-2', {
+  x: 3,
+  y: 0,
+  direction: 'north',
+  recipe: 'electronic-circuit'
+});
+
+// Add belt between them
+editor.placeEntity('transport-belt', { x: 1, y: 0, direction: 'east' });
+editor.placeEntity('transport-belt', { x: 2, y: 0, direction: 'east' });
+
+// Export the blueprint
+const bpString = editor.exportBlueprintString();
+console.log(bpString);
+```
+
+#### Error Handling
+```javascript
+// Return structured errors for AI to parse
+{
+  success: false,
+  error: {
+    code: 'ENTITY_COLLISION',
+    message: 'Cannot place entity: collision with existing entity at (5, 3)',
+    entity: 'assembler-3',
+    position: { x: 5, y: 3 },
+    conflictingEntityId: 'entity-12'
+  }
+}
+```
 
 ### 2. URL-Based Commands (Alternative/Complement)
 
+**Priority: Low**
+
 Allow blueprint construction via URL parameters.
 
-**Examples:**
+#### Examples
 ```
 https://fbe.teoxoy.com/?cmd=place&entity=assembler-3&x=0&y=0&direction=north
 https://fbe.teoxoy.com/?blueprint=base64string&edit=add-modules&entity=5&module=prod3&count=4
 ```
 
-**Benefits:**
+#### Benefits
 - No JavaScript execution required
 - Stateless interaction
 - Can chain commands via redirects
 - Easy to bookmark/share specific operations
 
-**Challenges:**
+#### Challenges
 - URL length limits for complex operations
 - Requires page reload for each operation (slower)
 - State management between operations
 
+#### Implementation Plan
+- [ ] Design URL command schema
+- [ ] Add URL parser to handle commands on page load
+- [ ] Implement command handlers
+- [ ] Add state persistence between reloads
+- [ ] Document URL API
+
 ### 3. Command Palette Enhancement
+
+**Priority: Medium**
 
 Extend existing keyboard shortcuts with text-based command input.
 
-**Proposed Commands:**
+#### Proposed Commands
 ```
 place assembler-3 at 5,5 facing north
 connect entity-12 to entity-15 via red-wire
@@ -99,36 +159,69 @@ add modules prod-3 x4 to entity-8
 export blueprint
 ```
 
-**Benefits:**
+#### Benefits
 - Human-readable
 - Discoverable via autocomplete
 - Can be scripted via keyboard automation
 - Familiar to users of VS Code, etc.
 
-**Challenges:**
+#### Challenges
 - Requires natural language parsing
 - More complex to implement
 - May have ambiguous commands
 
+#### Implementation Plan
+- [ ] Add command input UI (keyboard shortcut to open)
+- [ ] Implement command parser with fuzzy matching
+- [ ] Add command autocomplete
+- [ ] Create command help/documentation
+- [ ] Support command history
+
 ### 4. Grid Coordinate System
+
+**Priority: High**
 
 Add visual grid coordinates to help AI agents and users specify exact positions.
 
-**Features:**
+#### Features
 - Optional overlay showing X/Y coordinates
 - Hoverable tiles showing current position
 - Click-to-copy coordinates
 - Configurable grid origin (center vs corner)
 
-**Display Options:**
-- Toggle via UI checkbox or keyboard shortcut
-- Coordinate labels every N tiles (configurable)
+#### Display Options
+- Toggle via UI checkbox or keyboard shortcut (e.g., `Ctrl+G`)
+- Coordinate labels every N tiles (configurable, default: 5)
 - Highlight current cursor position
+- Semi-transparent overlay to not obscure entities
+
+#### Implementation Plan
+- [ ] Add coordinate overlay rendering layer
+- [ ] UI toggle button
+- [ ] Keyboard shortcut binding
+- [ ] Configuration for label frequency
+- [ ] Cursor position indicator
+- [ ] Click-to-copy coordinates to clipboard
+
+#### Mockup
+```
+     0    5   10   15   20
+  ┌────┬────┬────┬────┬────
+0 │    │    │    │    │
+  ├────┼────┼────┼────┼────
+5 │    │ A  │    │    │
+  ├────┼────┼────┼────┼────
+10│    │    │ B  │    │
+  ├────┼────┼────┼────┼────
+```
 
 ### 5. Batch Operation API
 
+**Priority: Medium**
+
 For complex blueprints, support multi-step operations in a single call.
 
+#### API Design
 ```javascript
 editor.executeBatch([
   { action: 'place', entity: 'assembler-3', x: 0, y: 0 },
@@ -138,213 +231,173 @@ editor.executeBatch([
 ]);
 ```
 
-**Benefits:**
+#### Benefits
 - Atomic operations (all or nothing)
 - Better performance (single render pass)
 - Transaction-like behavior with rollback
+- Reduced API calls for complex blueprints
 
-## Space Age DLC Support
-
-The Factorio Space Age DLC (released October 2024) adds significant new content that needs to be reflected in the blueprint editor.
-
-### New Content to Support
-
-#### New Planets & Surfaces
-- Nauvis (vanilla)
-- Vulcanus (lava planet)
-- Fulgora (electrical storm planet)
-- Gleba (organic/bio planet)
-- Aquilo (ice planet)
-- Space platforms
-
-**Implementation Needs:**
-- Multi-surface blueprint support
-- Planet-specific entity availability
-- Different tile sets per planet
-- Space platform special mechanics
-
-#### New Entities
-
-**Production:**
-- Big mining drill
-- Foundry (advanced smelting)
-- Electromagnetic plant (advanced crafting)
-- Biochamber (Gleba organic processing)
-- Cryogenic plant (Aquilo freezing)
-- Recycler
-- Asteroid collector
-- Crusher
-
-**Quality System:**
-- Quality modules (quality-1, quality-2, quality-3)
-- Quality entities (all existing entities can have quality levels)
-- Quality indicators in UI
-
-**Logistics:**
-- Bulk inserter
-- Elevated rails
-- Advanced belts (turbo, upgraded variants)
-
-**Power:**
-- Fusion reactor
-- Fusion power cell
-- Heating tower
-
-**Science:**
-- Agricultural science pack (Gleba)
-- Electromagnetic science pack (Fulgora)
-- Cryogenic science pack (Aquilo)
-- Metallurgic science pack (Vulcanus)
-- Promethium science pack (space)
-
-**Space Platforms:**
-- Space platform foundation
-- Space platform hub
-- Thruster
-- Asteroid collector
-- Cargo bay
-
-#### New Recipes
-- Planet-specific recipes (hundreds of new recipes)
-- Alternative recipes (scrap recycling, etc.)
-- Quality-affected crafting
-
-#### New Mechanics
-
-**Quality System:**
-- Every entity/item can have quality level (normal, uncommon, rare, epic, legendary)
-- Quality affects entity stats (speed, modules slots, etc.)
-- Quality modules increase quality chance
-- Need to display quality in entity tooltips/info
-
-**Elevated Rails:**
-- Rails can be at different heights
-- Support pillars
-- Ramps between levels
-
-**Space Platforms:**
-- Moving platforms (thrust direction, velocity)
-- Platform tiles with collision
-- Asteroid fields
-
-### Implementation Priorities
-
-#### Phase 1: Core Entity Updates
-1. Update entity definitions from latest Factorio data
-2. Add all new entity types with correct graphics
-3. Update recipe database
-4. Add quality system data structures
-
-#### Phase 2: Quality System
-1. Add quality attribute to all entities
-2. UI for selecting/displaying entity quality
-3. Quality module placement and effects
-4. Quality filtering in entity picker
-
-#### Phase 3: Multi-Surface Support
-1. Blueprint book support for multi-surface blueprints
-2. Surface/planet selector in UI
-3. Planet-specific entity filtering
-4. Different tile rendering per surface
-
-#### Phase 4: Space Platforms
-1. Space platform foundation tiles
-2. Thruster orientation and logic
-3. Cargo bay configurations
-4. Platform blueprint validation (connected foundations, etc.)
-
-#### Phase 5: Elevated Rails
-1. Rail height attribute
-2. Support pillar placement
-3. Ramp generation
-4. Height visualization
-
-### Data Source
-
-Factorio data extraction:
-```bash
-# Extract from Factorio installation
-/path/to/factorio --dump-data
-# Or use community-maintained data dumps
-```
-
-**Community Resources:**
-- Factorio Wiki: https://wiki.factorio.com/
-- Factorio Data Raw: https://lua-api.factorio.com/latest/Data-Lifecycle.html
-- Factorio Blueprint String Format: https://wiki.factorio.com/Blueprint_string_format
-
-### Testing
-
-**Quality Assurance:**
-- Test blueprints created in-editor import correctly to Space Age game
-- Verify all new entities render correctly
-- Check recipe compatibility
-- Quality system edge cases (legendary quality, quality modules)
-- Multi-surface blueprint book import/export
-
-**Compatibility:**
-- Maintain backward compatibility with vanilla Factorio blueprints
-- Graceful degradation when Space Age entities are unavailable
-- Version detection and warnings
+#### Implementation Plan
+- [ ] Design batch operation schema
+- [ ] Implement transaction system with rollback
+- [ ] Add validation before execution
+- [ ] Optimize rendering for batch updates
+- [ ] Document batch operation format
 
 ## Development Roadmap
 
-### Milestone 1: JavaScript API Foundation
-- [ ] Design API interface
-- [ ] Implement core entity placement methods
-- [ ] Add connection/wiring methods
-- [ ] Add export/import methods
-- [ ] Write API documentation
-- [ ] Create example scripts
+### Phase 1: JavaScript API Foundation
+**Status:** Not Started
 
-### Milestone 2: Space Age Data Update
-- [ ] Extract latest Factorio Space Age data
-- [ ] Update entity definitions
-- [ ] Update recipe database
-- [ ] Add new entity graphics
-- [ ] Update item/entity lists
+**Goals:**
+- Basic entity placement and manipulation
+- Blueprint export/import
+- Entity querying
 
-### Milestone 3: Quality System
-- [ ] Add quality data model
-- [ ] UI for quality selection
-- [ ] Quality rendering/indicators
-- [ ] Quality module support
-- [ ] Quality filtering
+**Deliverables:**
+- [ ] Core API implementation
+- [ ] TypeScript definitions
+- [ ] API documentation
+- [ ] Example scripts
+- [ ] Unit tests
 
-### Milestone 4: Advanced Features
-- [ ] Multi-surface blueprint support
-- [ ] Space platform mechanics
-- [ ] Elevated rails (if feasible)
-- [ ] Grid coordinate overlay
+### Phase 2: Grid Coordinates & Visual Aids
+**Status:** Not Started
+
+**Goals:**
+- Visual coordinate system
+- AI-friendly positioning
+
+**Deliverables:**
+- [ ] Coordinate overlay rendering
+- [ ] UI toggle
+- [ ] Click-to-copy functionality
+- [ ] Configuration options
+
+### Phase 3: Advanced API Features
+**Status:** Not Started
+
+**Goals:**
+- Batch operations
+- Complex entity manipulation
+- Validation and error handling
+
+**Deliverables:**
 - [ ] Batch operation API
+- [ ] Enhanced error reporting
+- [ ] Blueprint validation
+- [ ] Performance optimization
 
-### Milestone 5: AI Integration Testing
-- [ ] Test JavaScript API with AI agents
-- [ ] Document AI workflow patterns
-- [ ] Create example AI-generated blueprints
-- [ ] Performance optimization for large blueprints
-- [ ] Error handling and validation
+### Phase 4: Command Palette (Optional)
+**Status:** Not Started
+
+**Goals:**
+- Text-based command input
+- Alternative to pure API
+
+**Deliverables:**
+- [ ] Command parser
+- [ ] UI implementation
+- [ ] Command documentation
+- [ ] Autocomplete system
+
+## AI Integration Patterns
+
+### Pattern 1: Direct API Usage
+AI agent uses browser automation to execute JavaScript directly:
+```javascript
+// AI generates this code
+const api = window.factorioEditor;
+api.placeEntity('assembler-3', { x: 0, y: 0, recipe: 'iron-gear-wheel' });
+// ... more commands
+const blueprint = api.exportBlueprintString();
+```
+
+### Pattern 2: Iterative Design
+AI queries current state, designs next step, executes:
+```javascript
+// Step 1: Query current state
+const entities = api.getEntities();
+
+// Step 2: AI analyzes and plans next placement
+// ...
+
+// Step 3: Execute next step
+api.placeEntity(/*...*/);
+```
+
+### Pattern 3: Batch Generation
+AI designs entire blueprint offline, executes in single batch:
+```javascript
+const blueprint = generateBlueprintPlan(requirements);
+api.executeBatch(blueprint);
+```
+
+## Testing
+
+### Unit Tests
+- Entity placement validation
+- Connection logic
+- Blueprint export/import
+- Batch operation rollback
+
+### Integration Tests
+- Complete blueprint generation via API
+- Error handling and recovery
+- Performance with large blueprints
+
+### AI Agent Testing
+- Natural language → blueprint conversion
+- Complex production line design
+- Circuit network configuration
+- Blueprint optimization
+
+## Performance Considerations
+
+- Defer rendering until batch complete
+- Optimize entity lookup/query operations
+- Lazy validation (validate on export, not every operation)
+- Throttle UI updates during rapid API calls
+
+## Security Considerations
+
+- No sensitive data exposure via API
+- Validate all inputs to prevent injection
+- Rate limiting for API calls (prevent abuse)
+- CORS configuration for API access
+
+## Documentation
+
+### For Developers
+- API reference with all methods
+- TypeScript definitions
+- Architecture overview
+- Extension points
+
+### For AI Agents
+- Common patterns and workflows
+- Error handling guide
+- Production ratio calculations
+- Example blueprints
+
+### For Users
+- How to enable/use AI features
+- Privacy and security info
+- Troubleshooting guide
 
 ## Contributing
 
-This fork welcomes contributions, especially:
-- Space Age entity/recipe data
-- Graphics/sprites for new entities
-- JavaScript API improvements
-- AI interaction examples
+Contributions welcome, especially:
+- API design feedback
+- AI agent integration examples
+- Performance improvements
 - Bug reports and testing
 
 ## References
 
 - [Original Project](https://github.com/teoxoy/factorio-blueprint-editor)
-- [Factorio Wiki](https://wiki.factorio.com/)
-- [Blueprint String Format](https://wiki.factorio.com/Blueprint_string_format)
-- [Factorio Lua API](https://lua-api.factorio.com/latest/)
-- [Space Age Release Notes](https://factorio.com/blog/post/fff-373)
-
-## License
-
-Same as original: MIT License
+- [Factorio Blueprint String Format](https://wiki.factorio.com/Blueprint_string_format)
+- [Browser Automation Best Practices](https://developer.chrome.com/docs/devtools/)
 
 ---
 
