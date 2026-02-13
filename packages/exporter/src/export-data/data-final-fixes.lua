@@ -106,6 +106,7 @@ local creativeEntities = {
     'loader',
     'fast-loader',
     'express-loader',
+    'turbo-loader',
     'infinity-chest',
     'heat-interface',
     'infinity-pipe',
@@ -456,6 +457,29 @@ end
 -- DEFINES
 do
     output.defines = defines
+end
+
+-- QUALITIES
+do
+    local qualities = {}
+
+    if data.raw.quality then
+        for _, quality in pairs(deep_copy(data.raw.quality)) do
+            localise(quality, 'quality')
+            qualities[quality.name] = {
+                name = quality.name,
+                localised_name = quality.localised_name,
+                icon = quality.icon,
+                icons = quality.icons,
+                icon_size = quality.icon_size,
+                color = quality.color,
+                level = quality.level,
+                order = quality.order,
+            }
+        end
+    end
+
+    output.qualities = qualities
 end
 
 -- PASSTROUGH OUTPUT DATA

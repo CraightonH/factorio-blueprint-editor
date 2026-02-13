@@ -152,6 +152,23 @@ pub async fn extract(output_dir: &Path, base_factorio_dir: &Path) -> Result<(), 
     tokio::fs::write(mod_dir.join("data-final-fixes.lua"), data).await?;
     tokio::fs::write(scenario_dir.join("control.lua"), script).await?;
 
+    // Enable DLC mods
+    let mods_dir = base_factorio_dir.join("mods");
+    tokio::fs::create_dir_all(&mods_dir).await?;
+    let mod_list = serde_json::json!({
+        "mods": [
+            {"name": "base", "enabled": true},
+            {"name": "space-age", "enabled": true},
+            {"name": "elevated-rails", "enabled": true},
+            {"name": "quality", "enabled": true}
+        ]
+    });
+    tokio::fs::write(
+        mods_dir.join("mod-list.json"),
+        serde_json::to_string_pretty(&mod_list)?,
+    )
+    .await?;
+
     println!("Generating defines.lua");
 
     Command::new(factorio_executable)
@@ -188,8 +205,10 @@ pub async fn extract(output_dir: &Path, base_factorio_dir: &Path) -> Result<(), 
     let file_paths = file_paths
         .into_iter()
         .map(|s| {
-            let in_path =
-                factorio_data.join(s.replace("__core__", "core").replace("__base__", "base"));
+            lazy_static! {
+                static ref MOD_PREFIX_REGEX: Regex = Regex::new(r"__(.+?)__").unwrap();
+            }
+            let in_path = factorio_data.join(MOD_PREFIX_REGEX.replace_all(&s, "$1").as_ref());
             let out_path = output_dir.join(s.replace(".png", ".basis").as_str());
             (in_path, out_path)
         })
