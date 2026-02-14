@@ -35,5 +35,8 @@ RUN cargo build --release
 # Set Factorio base directory
 ENV FACTORIO_BASE_DIR=/opt/factorio
 
+# Override the base image's entrypoint (which starts a Factorio server)
+ENTRYPOINT []
+
 # Default command: run the exporter
 CMD ["cargo", "run", "--release"]
