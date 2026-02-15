@@ -139,7 +139,16 @@ pub async fn extract(output_dir: &Path, base_factorio_dir: &Path) -> Result<(), 
     let mod_dir = base_factorio_dir.join("mods/export-data");
     let scenario_dir = mod_dir.join("scenarios/export-data");
     let extracted_data_path = base_factorio_dir.join("script-output/data.json");
-    let factorio_executable = base_factorio_dir.join("bin/x64/factorio");
+    
+    // Check for factorio executable in common locations
+    let factorio_executable = if base_factorio_dir.join("bin/x64/factorio").exists() {
+        base_factorio_dir.join("bin/x64/factorio")
+    } else if PathBuf::from("/factorio/bin/x64/factorio").exists() {
+        // factoriotools/factorio Docker image location
+        PathBuf::from("/factorio/bin/x64/factorio")
+    } else {
+        return Err(format!("Factorio executable not found. Checked: {:?}/bin/x64/factorio and /factorio/bin/x64/factorio", base_factorio_dir).into());
+    };
 
     let info = include_str!("export-data/info.json");
     let script = include_str!("export-data/control.lua");
